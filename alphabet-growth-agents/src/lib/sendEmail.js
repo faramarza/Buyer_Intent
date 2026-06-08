@@ -1,0 +1,126 @@
+import nodemailer from "nodemailer";
+
+export async function sendDigestEmail(digest) {
+  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, RECIPIENT_EMAIL } = process.env;
+
+  if (!SMTP_USER || !SMTP_PASS || !RECIPIENT_EMAIL) {
+    console.log("\n  [Email] Skipped — SMTP_USER, SMTP_PASS, or RECIPIENT_EMAIL not set in .env");
+    return false;
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: SMTP_HOST || "smtp.gmail.com",
+    port: parseInt(SMTP_PORT || "587", 10),
+    secure: false,
+    auth: {
+      user: SMTP_USER,
+      pass: SMTP_PASS
+    }
+  });
+
+  const html = buildHtmlEmail(digest);
+
+  const info = await transporter.sendMail({
+    from: `"Alphabet Growth Agents" <${SMTP_USER}>`,
+    to: RECIPIENT_EMAIL,
+    subject: `Growth Digest — ${digest.date || new Date().toISOString().split("T")[0]}`,
+    html,
+    text: JSON.stringify(digest, null, 2)
+  });
+
+  console.log(`\n  [Email] Sent to ${RECIPIENT_EMAIL} (${info.messageId})`);
+  return true;
+}
+
+function buildHtmlEmail(digest) {
+  const summary = digest.summary || {};
+  const actions = digest.priority_actions || [];
+  const responses = digest.responses_ready_to_post || [];
+  const content = digest.content_calendar_additions || [];
+  const competitors = digest.competitor_watch || [];
+
+  return `
+<!DOCTYPE html>
+<html>
+<head><style>
+  body { font-family: -apple-system, Arial, sans-serif; max-width: 700px; margin: 0 auto; padding: 20px; color: #333; }
+  h1 { color: #2c5530; border-bottom: 2px solid #2c5530; padding-bottom: 8px; }
+  h2 { color: #4a7c50; margin-top: 30px; }
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin: 16px 0; }
+  .stat-card { background: #f0f7f1; border-radius: 8px; padding: 12px; text-align: center; }
+  .stat-card .number { font-size: 28px; font-weight: bold; color: #2c5530; }
+  .stat-card .label { font-size: 12px; color: #666; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+  th { background: #2c5530; color: white; padding: 8px 12px; text-align: left; font-size: 13px; }
+  td { padding: 8px 12px; border-bottom: 1px solid #eee; font-size: 13px; }
+  tr:hover { background: #f9f9f9; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+  .badge-high { background: #ffe0e0; color: #c0392b; }
+  .badge-medium { background: #fff3cd; color: #856404; }
+  .badge-low { background: #d4edda; color: #155724; }
+  .response-box { background: #f8f9fa; border-left: 3px solid #4a7c50; padding: 12px; margin: 12px 0; border-radius: 0 6px 6px 0; }
+  .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #ddd; font-size: 11px; color: #999; }
+</style></head>
+<body>
+  <h1>Alphabet Trains & Toys — Daily Growth Digest</h1>
+  <p style="color:#666;">${digest.date || new Date().toISOString().split("T")[0]}</p>
+
+  <div class="summary-grid">
+    <div class="stat-card"><div class="number">${summary.posts_analyzed || 0}</div><div class="label">Posts Analyzed</div></div>
+    <div class="stat-card"><div class="number">${summary.high_intent_leads || 0}</div><div class="label">High-Intent Leads</div></div>
+    <div class="stat-card"><div class="number">${summary.content_opportunities_found || 0}</div><div class="label">Content Opps</div></div>
+    <div class="stat-card"><div class="number">${summary.competitor_insights || 0}</div><div class="label">Competitor Insights</div></div>
+  </div>
+
+  ${actions.length > 0 ? `
+  <h2>Priority Actions</h2>
+  <table>
+    <tr><th>#</th><th>Action</th><th>Category</th><th>Revenue</th><th>Ease</th><th>Deadline</th></tr>
+    ${actions.map((a) => `
+    <tr>
+      <td>${a.rank}</td>
+      <td>${a.action}</td>
+      <td>${a.category}</td>
+      <td><span class="badge badge-${a.revenue_potential}">${a.revenue_potential}</span></td>
+      <td>${a.ease_of_execution}</td>
+      <td>${a.deadline}</td>
+    </tr>`).join("")}
+  </table>` : ""}
+
+  ${responses.length > 0 ? `
+  <h2>Responses Ready to Post</h2>
+  ${responses.map((r) => `
+  <div class="response-box">
+    <strong>${r.platform} — ${r.post_id}</strong> (intent: ${r.intent_score}/100)<br/>
+    <em>${r.response_text}</em>
+  </div>`).join("")}` : ""}
+
+  ${content.length > 0 ? `
+  <h2>Content Calendar</h2>
+  <table>
+    <tr><th>Topic</th><th>Format</th><th>Keyword</th><th>Publish</th></tr>
+    ${content.map((c) => `
+    <tr>
+      <td>${c.topic}</td>
+      <td>${c.format}</td>
+      <td>${c.target_keyword}</td>
+      <td>${c.suggested_publish_date}</td>
+    </tr>`).join("")}
+  </table>` : ""}
+
+  ${competitors.length > 0 ? `
+  <h2>Competitor Watch</h2>
+  <table>
+    <tr><th>Competitor</th><th>Signal</th><th>Our Response</th></tr>
+    ${competitors.map((c) => `
+    <tr>
+      <td>${c.competitor}</td>
+      <td>${c.signal}</td>
+      <td>${c.our_response}</td>
+    </tr>`).join("")}
+  </table>` : ""}
+
+  <div class="footer">Generated by Alphabet Growth Agents • ${new Date().toISOString()}</div>
+</body>
+</html>`;
+}

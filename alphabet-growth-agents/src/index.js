@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { samplePosts } from "./sample/posts.js";
 import { processPost, generateDigest } from "./controller.js";
+import { sendDigestEmail } from "./lib/sendEmail.js";
 
 async function main() {
   console.log("=".repeat(60));
@@ -26,6 +27,8 @@ async function main() {
   const digest = await generateDigest(allResults);
 
   console.log("\n" + JSON.stringify(digest, null, 2));
+
+  await sendDigestEmail(digest);
 
   console.log(`\n${"=".repeat(60)}`);
   console.log("  Run complete. Processed", allResults.length, "posts.");
