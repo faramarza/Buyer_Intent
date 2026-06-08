@@ -1,3 +1,5 @@
 node_modules/
 .env
 data/seen-posts.json
+data/logs/
+data/agent.pid

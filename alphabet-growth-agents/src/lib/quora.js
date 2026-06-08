@@ -1,5 +1,7 @@
 import { searchDuckDuckGo, normalizeSearchResult, sleep } from "./webSearch.js";
 
+const STALE_YEAR_PATTERN = /\b(201[0-9]|202[0-3])\b/;
+
 const QUORA_QUERIES = [
   "site:quora.com best personalized gifts for toddlers",
   "site:quora.com Montessori toys worth buying",
@@ -25,6 +27,7 @@ export async function fetchQuoraQuestions(maxAgeHours = 168) {
       for (const r of results) {
         if (!r.url?.includes("quora.com")) continue;
         if (seen.has(r.url)) continue;
+        if (STALE_YEAR_PATTERN.test(r.title) || STALE_YEAR_PATTERN.test(r.snippet)) continue;
         seen.add(r.url);
 
         const post = normalizeSearchResult(r, query);

@@ -29,6 +29,14 @@ An ecommerce store selling:
 - Pinterest: kids room decor, educational activities, personalized gifts
 - LinkedIn: daycare owners, preschool directors, ECE professionals
 
+## Freshness rules — CRITICAL
+Before selecting any agents, evaluate whether this post is still actionable:
+- If the post mentions a specific year (2018, 2019, 2020, 2021, 2022) or references outdated products/events, set relevance_score to 0 and skip it.
+- If the post appears to be from an archived or closed thread, set relevance_score to 0 and skip it.
+- If the language uses past tense ("I was looking for", "we ended up buying"), it may be stale — lower the relevance score.
+- Do NOT recommend response_draft for posts that appear older than 1 week or are from platforms where replies would look out of place (old Quora answers, old blog posts).
+- Pinterest pins and evergreen content are exceptions — they can still generate content_opportunity and product_intelligence insights regardless of age.
+
 ## Your task
 Given a community post, decide which specialist agents should analyze it.
 
