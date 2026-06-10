@@ -21,8 +21,16 @@ async function loadPrompt(agentName) {
   return content;
 }
 
-export async function runAgent(agentName, userMessage) {
-  const systemPrompt = await loadPrompt(agentName);
+export async function runAgent(agentName, userMessage, { siteContext, funnelDiagnosis } = {}) {
+  let systemPrompt = await loadPrompt(agentName);
+
+  if (siteContext) {
+    systemPrompt += "\n\n## SITE CONTEXT (first-party data — cite `source` and `fetchedAt` in evidence)\n\n" + siteContext;
+  }
+
+  if (funnelDiagnosis) {
+    systemPrompt += "\n\n## FUNNEL DIAGNOSIS (current cycle)\n\n" + JSON.stringify(funnelDiagnosis, null, 2);
+  }
 
   const response = await client.messages.create({
     model: "claude-sonnet-4-20250514",

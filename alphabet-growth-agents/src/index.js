@@ -3,11 +3,12 @@ import { mkdir } from "fs/promises";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { samplePosts } from "./sample/posts.js";
-import { processPost, generateDigest } from "./controller.js";
+import { processPost, generateDigest, runFunnelDiagnosis } from "./controller.js";
 import { sendDigestEmail } from "./lib/sendEmail.js";
 import { rankAllActions } from "./lib/ranking.js";
 import { exportCsv } from "./lib/csvExport.js";
 import { addRun } from "./lib/actionsStore.js";
+import { buildSiteContext } from "./lib/siteContext.js";
 import { fetchAllRedditPosts } from "./lib/reddit.js";
 import { fetchQuoraQuestions } from "./lib/quora.js";
 import { fetchPinterestTrends } from "./lib/pinterest.js";
@@ -85,7 +86,6 @@ async function getPosts() {
     allPosts.push(...posts);
   }
 
-  // Deduplicate by URL and ID
   const seen = new Set();
   const unique = [];
   for (const post of allPosts) {
@@ -96,7 +96,6 @@ async function getPosts() {
     }
   }
 
-  // Filter out already-processed posts
   const newPosts = [];
   for (const post of unique) {
     if (await isNew(post.id)) {
@@ -121,6 +120,13 @@ async function main() {
   console.log("=".repeat(60));
   console.log("");
 
+  // ── PHASE 1: DATA INGESTION ──
+  const siteContext = await buildSiteContext();
+
+  // ── PHASE 2: FUNNEL DIAGNOSIS ──
+  const funnelDiagnosis = await runFunnelDiagnosis(siteContext);
+
+  // ── PHASE 3: POST INGESTION ──
   const posts = await getPosts();
 
   if (posts.length === 0) {
@@ -130,6 +136,7 @@ async function main() {
 
   console.log(`  Processing ${posts.length} posts...\n`);
 
+  // ── PHASE 4: AGENT PROCESSING ──
   const allResults = [];
 
   for (const post of posts) {
@@ -139,45 +146,45 @@ async function main() {
     if (post.url) console.log(`  ${post.url}`);
     console.log(`${"—".repeat(50)}`);
 
-    const result = await processPost(post);
+    const result = await processPost(post, siteContext, funnelDiagnosis);
     allResults.push(result);
 
     await markSeen(post.id, post.timestamp);
   }
 
+  // ── PHASE 5: DIGEST & RANKING ──
   console.log(`\n${"=".repeat(60)}`);
   console.log("  DAILY DIGEST");
   console.log(`${"=".repeat(60)}`);
 
-  const digest = await generateDigest(allResults);
+  const digest = await generateDigest(allResults, siteContext, funnelDiagnosis);
 
-  // Rank all actions with composite scores
-  const rankedActions = rankAllActions(digest);
+  const rankedActions = rankAllActions(digest, funnelDiagnosis);
 
   console.log("\n  RANKED ACTIONS:");
   console.log("  " + "-".repeat(46));
   for (const a of rankedActions.slice(0, 15)) {
-    console.log(`  #${a.rank}  [${a.scores.normalized}/100 ${a.impact_label.toUpperCase()}]  ${a.action.slice(0, 60)}`);
+    const spec = a.speculative ? " [SPECULATIVE]" : "";
+    const impact = typeof a.revenueImpact === "number" ? `$${a.revenueImpact}` : (a.revenueImpact || "?");
+    console.log(`  #${a.rank}  [${a.scores.normalized}/100 ${a.impact_label.toUpperCase()}]  ${impact}  ${a.action.slice(0, 50)}${spec}`);
   }
   if (rankedActions.length > 15) {
     console.log(`  ... and ${rankedActions.length - 15} more`);
   }
 
-  // Save to actions store for dashboard
   const runId = await addRun(rankedActions, digest);
   console.log(`\n  [Store] Saved ${rankedActions.length} actions (${runId})`);
 
-  // Export CSV
   const csvPath = await exportCsv(rankedActions);
 
-  // Send email
   await sendDigestEmail(digest);
 
   console.log(`\n${"=".repeat(60)}`);
   console.log("  Run complete. Processed", allResults.length, "posts.");
   console.log("  Actions ranked:", rankedActions.length);
   console.log("  CSV exported:", csvPath);
-  console.log("  Dashboard: node src/dashboard.js");
+  console.log("  Strategic objective:", funnelDiagnosis.strategicObjective);
+  console.log("  Dashboard: npm run dashboard");
   console.log(`${"=".repeat(60)}\n`);
 }
 

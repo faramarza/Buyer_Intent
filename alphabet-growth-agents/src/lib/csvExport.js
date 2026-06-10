@@ -1,4 +1,4 @@
-import { writeFile } from "fs/promises";
+import { writeFile, mkdir } from "fs/promises";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -6,7 +6,6 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export async function exportCsv(rankedActions, filename) {
   const outputDir = resolve(__dirname, "../../data/exports");
-  const { mkdir } = await import("fs/promises");
   await mkdir(outputDir, { recursive: true });
 
   const timestamp = new Date().toISOString().split("T")[0];
@@ -19,8 +18,10 @@ export async function exportCsv(rankedActions, filename) {
     "Type",
     "Category",
     "Action",
-    "Revenue Potential",
-    "SEO Value",
+    "Revenue Impact",
+    "Evidence",
+    "Speculative",
+    "Funnel Stage",
     "Ease",
     "Deadline",
     "Status",
@@ -36,8 +37,10 @@ export async function exportCsv(rankedActions, filename) {
     a.type || "",
     a.category || "",
     csvEscape(a.action || ""),
-    a.revenue_potential || "",
-    a.seo_value || "",
+    typeof a.revenueImpact === "number" ? a.revenueImpact : csvEscape(a.revenueImpact || "insufficient_data"),
+    csvEscape(a.evidence || ""),
+    a.speculative ? "yes" : "no",
+    a.funnel_stage || "",
     a.ease_of_execution || "",
     a.deadline || "",
     "todo",

@@ -11,8 +11,11 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
     "cheerio": "^1.2.0",
+    "csv-parse": "^6.2.1",
     "dotenv": "^16.4.7",
     "express": "^5.2.1",
+    "googleapis": "^173.0.0",
+    "mysql2": "^3.22.5",
     "nodemailer": "^8.0.10"
   }
 }
