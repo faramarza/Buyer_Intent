@@ -5,6 +5,9 @@ import { fileURLToPath } from "url";
 import { samplePosts } from "./sample/posts.js";
 import { processPost, generateDigest } from "./controller.js";
 import { sendDigestEmail } from "./lib/sendEmail.js";
+import { rankAllActions } from "./lib/ranking.js";
+import { exportCsv } from "./lib/csvExport.js";
+import { addRun } from "./lib/actionsStore.js";
 import { fetchAllRedditPosts } from "./lib/reddit.js";
 import { fetchQuoraQuestions } from "./lib/quora.js";
 import { fetchPinterestTrends } from "./lib/pinterest.js";
@@ -148,12 +151,33 @@ async function main() {
 
   const digest = await generateDigest(allResults);
 
-  console.log("\n" + JSON.stringify(digest, null, 2));
+  // Rank all actions with composite scores
+  const rankedActions = rankAllActions(digest);
 
+  console.log("\n  RANKED ACTIONS:");
+  console.log("  " + "-".repeat(46));
+  for (const a of rankedActions.slice(0, 15)) {
+    console.log(`  #${a.rank}  [${a.scores.normalized}/100 ${a.impact_label.toUpperCase()}]  ${a.action.slice(0, 60)}`);
+  }
+  if (rankedActions.length > 15) {
+    console.log(`  ... and ${rankedActions.length - 15} more`);
+  }
+
+  // Save to actions store for dashboard
+  const runId = await addRun(rankedActions, digest);
+  console.log(`\n  [Store] Saved ${rankedActions.length} actions (${runId})`);
+
+  // Export CSV
+  const csvPath = await exportCsv(rankedActions);
+
+  // Send email
   await sendDigestEmail(digest);
 
   console.log(`\n${"=".repeat(60)}`);
   console.log("  Run complete. Processed", allResults.length, "posts.");
+  console.log("  Actions ranked:", rankedActions.length);
+  console.log("  CSV exported:", csvPath);
+  console.log("  Dashboard: node src/dashboard.js");
   console.log(`${"=".repeat(60)}\n`);
 }
 
