@@ -64,8 +64,12 @@ function inferCategory(productName) {
   return "Other";
 }
 
+function stripBom(str) {
+  return str.charCodeAt(0) === 0xFEFF ? str.slice(1) : str;
+}
+
 async function convertOrders(csvPath) {
-  const raw = await readFile(csvPath, "utf-8");
+  const raw = stripBom(await readFile(csvPath, "utf-8"));
   const records = parse(raw, { columns: true, skip_empty_lines: true, trim: true });
 
   let lastDate = null;
@@ -102,7 +106,7 @@ async function convertOrders(csvPath) {
 }
 
 async function convertProducts(csvPath) {
-  const raw = await readFile(csvPath, "utf-8");
+  const raw = stripBom(await readFile(csvPath, "utf-8"));
   const records = parse(raw, { columns: true, skip_empty_lines: true, trim: true });
 
   const isRevenueFormat = records.length > 0 && ("Revenue" in records[0] || "Product Revenue" in records[0]);
