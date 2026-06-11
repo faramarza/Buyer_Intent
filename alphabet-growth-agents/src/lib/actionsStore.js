@@ -68,15 +68,27 @@ export async function updateActionStatus(actionId, status, notes) {
   return action;
 }
 
+function deduplicateActions(actions) {
+  const seen = new Map();
+  for (const a of actions) {
+    const key = a.action.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    if (!seen.has(key) || (a.scores?.normalized || 0) > (seen.get(key).scores?.normalized || 0)) {
+      seen.set(key, a);
+    }
+  }
+  return [...seen.values()];
+}
+
 export async function getStats() {
   const store = await loadActions();
-  const total = store.actions.length;
-  const done = store.actions.filter((a) => a.status === "done").length;
-  const skipped = store.actions.filter((a) => a.status === "skipped").length;
+  const actions = deduplicateActions(store.actions);
+  const total = actions.length;
+  const done = actions.filter((a) => a.status === "done").length;
+  const skipped = actions.filter((a) => a.status === "skipped").length;
   const todo = total - done - skipped;
 
   const byImpact = {};
-  for (const a of store.actions) {
+  for (const a of actions) {
     const label = a.impact_label || "unknown";
     if (!byImpact[label]) byImpact[label] = { total: 0, done: 0 };
     byImpact[label].total++;
@@ -84,7 +96,7 @@ export async function getStats() {
   }
 
   const byCategory = {};
-  for (const a of store.actions) {
+  for (const a of actions) {
     const cat = a.category || "other";
     if (!byCategory[cat]) byCategory[cat] = { total: 0, done: 0 };
     byCategory[cat].total++;

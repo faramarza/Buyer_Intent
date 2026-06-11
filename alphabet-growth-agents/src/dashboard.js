@@ -11,6 +11,15 @@ app.get("/api/actions", async (req, res) => {
   const store = await loadActions();
   let actions = store.actions;
 
+  const seen = new Map();
+  for (const a of actions) {
+    const key = a.action.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    if (!seen.has(key) || (a.scores?.normalized || 0) > (seen.get(key).scores?.normalized || 0)) {
+      seen.set(key, a);
+    }
+  }
+  actions = [...seen.values()];
+
   const { status, category, impact, sort, speculative, funnel_stage } = req.query;
   if (status) actions = actions.filter((a) => a.status === status);
   if (category) actions = actions.filter((a) => a.category === category);
@@ -179,12 +188,12 @@ async function loadStats() {
   const res = await fetch('/api/stats');
   const stats = await res.json();
   document.getElementById('statsBar').innerHTML =
-    '<div class="stat-card todo"><div class="number">'+stats.todo+'</div><div class="label">To Do</div></div>'+
-    '<div class="stat-card done"><div class="number">'+stats.done+'</div><div class="label">Done</div></div>'+
+    '<div class="stat-card todo" onclick="filterByStatus(\'todo\')" style="cursor:pointer"><div class="number">'+stats.todo+'</div><div class="label">To Do</div></div>'+
+    '<div class="stat-card done" onclick="filterByStatus(\'done\')" style="cursor:pointer"><div class="number">'+stats.done+'</div><div class="label">Done</div></div>'+
     '<div class="stat-card"><div class="number">'+stats.total+'</div><div class="label">Total</div></div>'+
     '<div class="stat-card"><div class="number">'+stats.runs+'</div><div class="label">Runs</div></div>'+
-    '<div class="stat-card critical"><div class="number">'+(stats.byImpact?.critical?.total||0)+'</div><div class="label">Critical</div></div>'+
-    '<div class="stat-card high"><div class="number">'+(stats.byImpact?.high?.total||0)+'</div><div class="label">High</div></div>';
+    '<div class="stat-card critical" onclick="filterByImpact(\'critical\')" style="cursor:pointer"><div class="number">'+(stats.byImpact?.critical?.total||0)+'</div><div class="label">Critical</div></div>'+
+    '<div class="stat-card high" onclick="filterByImpact(\'high\')" style="cursor:pointer"><div class="number">'+(stats.byImpact?.high?.total||0)+'</div><div class="label">High Impact</div></div>';
 }
 
 async function loadActions() {
@@ -210,7 +219,7 @@ async function loadActions() {
     return;
   }
 
-  document.getElementById('actionsList').innerHTML = data.actions.map(function(a) {
+  document.getElementById('actionsList').innerHTML = data.actions.map(function(a, idx) {
     var revenueDisplay = typeof a.revenueImpact === 'number'
       ? '<span class="revenue-badge computed">$'+a.revenueImpact.toLocaleString()+'</span>'
       : '<span class="revenue-badge nodata">'+(a.revenueImpact||'insufficient_data')+'</span>';
@@ -224,7 +233,7 @@ async function loadActions() {
       : '<span class="tag grounded">Grounded</span>';
 
     return '<div class="action-card status-'+a.status+(a.speculative?' speculative':'')+'" id="card-'+a.id+'">'+
-      '<div class="rank">#'+a.rank+'</div>'+
+      '<div class="rank">#'+(idx+1)+'</div>'+
       '<div class="score-badge">'+
         '<div class="score-ring '+(a.impact_label||'')+'">'+(a.scores?.normalized||0)+'</div>'+
         '<div class="impact-label">'+(a.impact_label||'')+'</div>'+
@@ -274,6 +283,17 @@ function esc(s) {
   var d = document.createElement('div');
   d.textContent = s;
   return d.innerHTML;
+}
+
+function filterByImpact(level) {
+  document.getElementById('filterImpact').value = level;
+  document.getElementById('filterStatus').value = '';
+  loadActions();
+}
+
+function filterByStatus(s) {
+  document.getElementById('filterStatus').value = s;
+  loadActions();
 }
 
 document.getElementById('filterStatus').addEventListener('change', loadActions);
