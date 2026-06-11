@@ -6,7 +6,8 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "dashboard": "node src/dashboard.js"
+    "dashboard": "node src/dashboard.js",
+    "convert-magento": "node scripts/convert-magento-csv.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
