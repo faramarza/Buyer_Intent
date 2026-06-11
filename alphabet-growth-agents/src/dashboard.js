@@ -184,16 +184,27 @@ const DASHBOARD_HTML = `<!DOCTYPE html>
 <div class="actions-list" id="actionsList"></div>
 
 <script>
+function filterByImpact(level) {
+  document.getElementById('filterImpact').value = level;
+  document.getElementById('filterStatus').value = '';
+  loadActions();
+}
+
+function filterByStatus(s) {
+  document.getElementById('filterStatus').value = s;
+  loadActions();
+}
+
 async function loadStats() {
   const res = await fetch('/api/stats');
   const stats = await res.json();
   document.getElementById('statsBar').innerHTML =
-    '<div class="stat-card todo" onclick="filterByStatus(\'todo\')" style="cursor:pointer"><div class="number">'+stats.todo+'</div><div class="label">To Do</div></div>'+
-    '<div class="stat-card done" onclick="filterByStatus(\'done\')" style="cursor:pointer"><div class="number">'+stats.done+'</div><div class="label">Done</div></div>'+
+    '<div class="stat-card todo" onclick="filterByStatus(&#39;todo&#39;)" style="cursor:pointer"><div class="number">'+stats.todo+'</div><div class="label">To Do</div></div>'+
+    '<div class="stat-card done" onclick="filterByStatus(&#39;done&#39;)" style="cursor:pointer"><div class="number">'+stats.done+'</div><div class="label">Done</div></div>'+
     '<div class="stat-card"><div class="number">'+stats.total+'</div><div class="label">Total</div></div>'+
     '<div class="stat-card"><div class="number">'+stats.runs+'</div><div class="label">Runs</div></div>'+
-    '<div class="stat-card critical" onclick="filterByImpact(\'critical\')" style="cursor:pointer"><div class="number">'+(stats.byImpact?.critical?.total||0)+'</div><div class="label">Critical</div></div>'+
-    '<div class="stat-card high" onclick="filterByImpact(\'high\')" style="cursor:pointer"><div class="number">'+(stats.byImpact?.high?.total||0)+'</div><div class="label">High Impact</div></div>';
+    '<div class="stat-card critical" onclick="filterByImpact(&#39;critical&#39;)" style="cursor:pointer"><div class="number">'+(stats.byImpact?.critical?.total||0)+'</div><div class="label">Critical</div></div>'+
+    '<div class="stat-card high" onclick="filterByImpact(&#39;high&#39;)" style="cursor:pointer"><div class="number">'+(stats.byImpact?.high?.total||0)+'</div><div class="label">High Impact</div></div>';
 }
 
 async function loadActions() {
@@ -283,17 +294,6 @@ function esc(s) {
   var d = document.createElement('div');
   d.textContent = s;
   return d.innerHTML;
-}
-
-function filterByImpact(level) {
-  document.getElementById('filterImpact').value = level;
-  document.getElementById('filterStatus').value = '';
-  loadActions();
-}
-
-function filterByStatus(s) {
-  document.getElementById('filterStatus').value = s;
-  loadActions();
 }
 
 document.getElementById('filterStatus').addEventListener('change', loadActions);
