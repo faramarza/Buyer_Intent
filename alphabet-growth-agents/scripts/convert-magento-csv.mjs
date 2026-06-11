@@ -105,45 +105,61 @@ async function convertProducts(csvPath) {
   const raw = await readFile(csvPath, "utf-8");
   const records = parse(raw, { columns: true, skip_empty_lines: true, trim: true });
 
+  const isRevenueFormat = records.length > 0 && ("Revenue" in records[0] || "Product Revenue" in records[0]);
+
   const productMap = new Map();
   const categoryMap = new Map();
   let lastDate = null;
 
   for (const row of records) {
-    const dateRaw = row["Interval"] || row["Period"] || row["Date"];
-    if (dateRaw && dateRaw.trim()) lastDate = normalizeDate(dateRaw);
-
     const name = row["Product"] || row["Product Name"] || "";
+    if (!name) continue;
+
+    let revenue = 0;
+    let qty = 0;
+
+    if (isRevenueFormat) {
+      revenue = parseCurrency(row["Revenue"] || row["Product Revenue"]);
+      if (revenue === 0) continue;
+      qty = 1;
+    } else {
+      const dateRaw = row["Interval"] || row["Period"] || row["Date"];
+      if (dateRaw && dateRaw.trim()) lastDate = normalizeDate(dateRaw);
+      qty = parseInt(row["Ordered Quantity"] || row["Qty Ordered"] || row["Quantity"] || "0") || 0;
+      if (qty === 0) continue;
+    }
+
     const sku = row["SKU"] || "";
-    const qty = parseInt(row["Ordered Quantity"] || row["Qty Ordered"] || row["Quantity"] || "0") || 0;
-
-    if (!name || qty === 0) continue;
-
     const key = sku || name;
     if (productMap.has(key)) {
       const p = productMap.get(key);
       p.units += qty;
       p.orders += 1;
+      p.revenue += revenue;
     } else {
-      productMap.set(key, { name, sku, orders: 1, units: qty, revenue: 0, avgPrice: 0 });
+      productMap.set(key, { name, sku, orders: 1, units: qty, revenue, avgPrice: 0 });
     }
 
     const cat = inferCategory(name);
     if (categoryMap.has(cat)) {
       const c = categoryMap.get(cat);
       c.orders += 1;
-      c.units += qty;
+      c.revenue += revenue;
     } else {
-      categoryMap.set(cat, { category: cat, orders: 1, revenue: 0, units: qty });
+      categoryMap.set(cat, { category: cat, orders: 1, revenue });
     }
   }
 
+  for (const p of productMap.values()) {
+    if (p.units > 0) p.avgPrice = Math.round((p.revenue / p.units) * 100) / 100;
+  }
+
   const products = [...productMap.values()]
-    .sort((a, b) => b.units - a.units)
+    .sort((a, b) => b.revenue - a.revenue)
     .slice(0, 100);
 
   const categories = [...categoryMap.values()]
-    .sort((a, b) => b.units - a.units);
+    .sort((a, b) => b.revenue - a.revenue);
 
   return { products, categories };
 }
