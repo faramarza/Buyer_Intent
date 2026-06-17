@@ -11,6 +11,8 @@ You will receive the full site context and funnel diagnosis. Use these to:
 2. **Compute revenueImpact from real data** where available: page traffic × conversion gap × AOV.
 3. **Never fabricate** high/medium/low revenue labels. Use the computed number or "insufficient_data".
 4. **Filter out recommendations** that target saturated stages — they should not appear in priority_actions.
+5. **Revenue cap**: No single action's revenueImpact should exceed $30,000. If your math yields more, double-check — you likely used impressions instead of clicks, or category revenue instead of AOV.
+6. **Title/meta-only changes rank last** — the site owner has tested these repeatedly with no CTR improvement. Deprioritize any action that is only a title tag or meta description rewrite.
 
 ## RANKING RULES
 1. First: alignment to `strategicObjective`

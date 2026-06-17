@@ -6,8 +6,8 @@ const WEIGHT = {
   intent: 3
 };
 
-const EASE_SCORE = { easy: 3, moderate: 2, hard: 1 };
-const URGENCY_SCORE = { today: 4, this_week: 3, this_month: 2, backlog: 1 };
+const EASE_SCORE = { easy: 4, moderate: 2, hard: 1 };
+const URGENCY_SCORE = { today: 6, this_week: 4, this_month: 2, backlog: 1 };
 
 function scoreEase(val) {
   return EASE_SCORE[String(val).toLowerCase()] || 1;
@@ -15,6 +15,21 @@ function scoreEase(val) {
 
 function scoreUrgency(val) {
   return URGENCY_SCORE[String(val).toLowerCase()] || 1;
+}
+
+function sanitizeRevenue(val, action) {
+  if (typeof val !== "number" || val <= 0) return val;
+  const MAX_SINGLE_ACTION = 30000; // no single action worth more than ~25% of annual revenue
+  if (val > MAX_SINGLE_ACTION) return MAX_SINGLE_ACTION;
+  return val;
+}
+
+function isTitleMetaOnly(actionText) {
+  if (!actionText) return false;
+  const text = actionText.toLowerCase();
+  const titleMetaPatterns = /optimize title|optimize meta|rewrite title|title tag|meta description/;
+  const contentPatterns = /faq|guide|blog|section|add content|create content|new page/;
+  return titleMetaPatterns.test(text) && !contentPatterns.test(text);
 }
 
 function scoreRevenueImpact(val) {
@@ -46,6 +61,9 @@ function scoreEvidence(action) {
 }
 
 export function rankAction(action, funnelDiagnosis) {
+  // Sanitize revenue before scoring
+  action.revenueImpact = sanitizeRevenue(action.revenueImpact, action);
+
   const objectiveScore = scoreObjectiveAlignment(action, funnelDiagnosis) * WEIGHT.objective_alignment;
   const revenueScore = scoreRevenueImpact(action.revenueImpact) * WEIGHT.revenue;
   const evidenceScore = scoreEvidence(action) * WEIGHT.evidence;
@@ -53,8 +71,15 @@ export function rankAction(action, funnelDiagnosis) {
   const urgency = scoreUrgency(action.deadline);
   const intentBonus = action.intent_score ? (action.intent_score / 100) * WEIGHT.intent * 3 : 0;
 
-  const composite = objectiveScore + revenueScore + evidenceScore + ease + urgency + intentBonus;
-  const maxPossible = WEIGHT.objective_alignment * 3 + WEIGHT.revenue * 3 + WEIGHT.evidence * 3 + WEIGHT.ease * 3 + 4 + WEIGHT.intent * 3;
+  let composite = objectiveScore + revenueScore + evidenceScore + ease + urgency + intentBonus;
+  const maxPossible = WEIGHT.objective_alignment * 3 + WEIGHT.revenue * 3 + WEIGHT.evidence * 3 + WEIGHT.ease * 4 + 6 + WEIGHT.intent * 3;
+
+  // Penalize title/meta-only recommendations (proven ineffective for this site)
+  const titleMetaPenalty = isTitleMetaOnly(action.action);
+  if (titleMetaPenalty) {
+    composite *= 0.6; // 40% reduction
+  }
+
   const normalizedScore = Math.round((composite / maxPossible) * 100);
 
   return {
@@ -67,7 +92,8 @@ export function rankAction(action, funnelDiagnosis) {
       urgency,
       intent_bonus: Math.round(intentBonus * 10) / 10,
       composite: Math.round(composite * 10) / 10,
-      normalized: normalizedScore
+      normalized: normalizedScore,
+      title_meta_penalty: titleMetaPenalty
     },
     impact_label: getImpactLabel(normalizedScore)
   };

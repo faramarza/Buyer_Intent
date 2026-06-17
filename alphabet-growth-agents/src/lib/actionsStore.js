@@ -68,15 +68,64 @@ export async function updateActionStatus(actionId, status, notes) {
   return action;
 }
 
-function deduplicateActions(actions) {
-  const seen = new Map();
-  for (const a of actions) {
-    const key = a.action.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-    if (!seen.has(key) || (a.scores?.normalized || 0) > (seen.get(key).scores?.normalized || 0)) {
-      seen.set(key, a);
-    }
+function normalizeText(text) {
+  return (text || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function getWords(text) {
+  return normalizeText(text).split(/\s+/).filter(Boolean);
+}
+
+function firstNWords(text, n) {
+  return getWords(text).slice(0, n).join(" ");
+}
+
+function extractPageUrl(text) {
+  const match = (text || "").match(/[\w-]+\.html/i);
+  return match ? match[0].toLowerCase() : null;
+}
+
+function wordOverlap(textA, textB) {
+  const wordsA = new Set(getWords(textA));
+  const wordsB = new Set(getWords(textB));
+  if (wordsA.size === 0 || wordsB.size === 0) return 0;
+  let shared = 0;
+  for (const w of wordsA) {
+    if (wordsB.has(w)) shared++;
   }
-  return [...seen.values()];
+  const smaller = Math.min(wordsA.size, wordsB.size);
+  return shared / smaller;
+}
+
+function areSimilarActions(a, b) {
+  // Same first 8 words
+  if (firstNWords(a.action, 8) === firstNWords(b.action, 8) && firstNWords(a.action, 8).length > 0) return true;
+  // Same target page URL
+  const urlA = extractPageUrl(a.action);
+  const urlB = extractPageUrl(b.action);
+  if (urlA && urlB && urlA === urlB) return true;
+  // 70%+ word overlap
+  if (wordOverlap(a.action, b.action) >= 0.7) return true;
+  return false;
+}
+
+function deduplicateActions(actions) {
+  const deduped = [];
+  for (const a of actions) {
+    let isDup = false;
+    for (let i = 0; i < deduped.length; i++) {
+      if (areSimilarActions(a, deduped[i])) {
+        // Keep the one with the higher score
+        if ((a.scores?.normalized || 0) > (deduped[i].scores?.normalized || 0)) {
+          deduped[i] = a;
+        }
+        isDup = true;
+        break;
+      }
+    }
+    if (!isDup) deduped.push(a);
+  }
+  return deduped;
 }
 
 export async function getStats() {

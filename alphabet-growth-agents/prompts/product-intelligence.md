@@ -59,7 +59,7 @@ Return ONLY valid JSON. No markdown, no explanation, no code fences.
   "conversion_ideas": [
     {
       "idea": "description of the improvement",
-      "revenueImpact": "calculated: pageTraffic × conversionGap × AOV, or 'insufficient_data'",
+      "revenueImpact": "calculated: additionalMonthlyClicks × siteConversionRate × AOV. Where additionalMonthlyClicks = impressions × (targetCTR - currentCTR). Use site-wide AOV ($82.67) not per-category totals. Cap at $30,000. If you cannot compute with real numbers, use 'insufficient_data'",
       "implementation_effort": "low" | "medium" | "high",
       "evidence": "the data behind the revenueImpact calculation",
       "speculative": false
