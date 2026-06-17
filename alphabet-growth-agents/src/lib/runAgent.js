@@ -33,7 +33,7 @@ export async function runAgent(agentName, userMessage, { siteContext, funnelDiag
   }
 
   const response = await client.messages.create({
-    model: process.env.CLAUDE_MODEL || "claude-sonnet-4-6-20250514",
+    model: process.env.CLAUDE_MODEL || "claude-sonnet-4-6",
     max_tokens: 2000,
     system: systemPrompt,
     messages: [
