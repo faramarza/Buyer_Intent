@@ -35,7 +35,7 @@ export async function fetchQuoraQuestions(maxAgeHours = 168) {
         allPosts.push(post);
       }
 
-      await sleep(1500);
+      await sleep(3000 + Math.random() * 3000);
     } catch (err) {
       console.log(`  [Quora] Error searching "${query}": ${err.message}`);
     }

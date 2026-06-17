@@ -40,7 +40,7 @@ export async function fetchGoogleQuestions() {
         allPosts.push(post);
       }
 
-      await sleep(1500);
+      await sleep(3000 + Math.random() * 3000);
     } catch (err) {
       console.log(`  [Google] Error searching "${query}": ${err.message}`);
     }

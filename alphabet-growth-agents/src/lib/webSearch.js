@@ -14,22 +14,7 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export async function searchDuckDuckGo(query, maxResults = 10) {
-  const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
-
-  const res = await fetch(url, {
-    headers: {
-      "User-Agent": randomUA(),
-      Accept: "text/html,application/xhtml+xml",
-      "Accept-Language": "en-US,en;q=0.9"
-    }
-  });
-
-  if (!res.ok) {
-    throw new Error(`DuckDuckGo search failed: ${res.status}`);
-  }
-
-  const html = await res.text();
+function parseResults(html, maxResults) {
   const $ = cheerio.load(html);
   const results = [];
 
@@ -66,6 +51,46 @@ export async function searchDuckDuckGo(query, maxResults = 10) {
   });
 
   return results;
+}
+
+export async function searchDuckDuckGo(query, maxResults = 10) {
+  const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+  const MAX_RETRIES = 3;
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": randomUA(),
+        Accept: "text/html,application/xhtml+xml",
+        "Accept-Language": "en-US,en;q=0.9"
+      }
+    });
+
+    if (res.status === 202 || res.status === 403 || res.status === 429) {
+      const backoff = (attempt + 1) * 10000 + Math.random() * 5000;
+      console.log(`  [Search] Rate limited (${res.status}), waiting ${Math.round(backoff / 1000)}s before retry...`);
+      await sleep(backoff);
+      continue;
+    }
+
+    if (!res.ok) {
+      throw new Error(`DuckDuckGo search failed: ${res.status}`);
+    }
+
+    const html = await res.text();
+    const results = parseResults(html, maxResults);
+
+    if (results.length === 0 && attempt < MAX_RETRIES - 1) {
+      const backoff = (attempt + 1) * 8000 + Math.random() * 4000;
+      console.log(`  [Search] Empty results (possible captcha), waiting ${Math.round(backoff / 1000)}s before retry...`);
+      await sleep(backoff);
+      continue;
+    }
+
+    return results;
+  }
+
+  return [];
 }
 
 export function detectPlatform(url) {

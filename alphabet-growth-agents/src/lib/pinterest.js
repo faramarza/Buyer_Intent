@@ -32,7 +32,7 @@ export async function fetchPinterestTrends() {
         allPosts.push(post);
       }
 
-      await sleep(1500);
+      await sleep(3000 + Math.random() * 3000);
     } catch (err) {
       console.log(`  [Pinterest] Error searching "${query}": ${err.message}`);
     }
