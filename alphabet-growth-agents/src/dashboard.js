@@ -296,7 +296,7 @@ async function loadActions() {
   var data = await res.json();
 
   if (data.actions.length === 0) {
-    document.getElementById('actionsList').innerHTML = '<div class="empty-state">No actions found. Run the agent first: <code>./run.sh</code></div>';
+    document.getElementById('actionsList').innerHTML = '<div class="empty-state">No actions found. Run the agent first: <code>npm start</code></div>';
     return;
   }
 
