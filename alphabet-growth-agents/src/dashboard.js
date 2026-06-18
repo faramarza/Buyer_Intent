@@ -333,13 +333,13 @@ async function loadActions() {
         (a.response_text ? '<div class="response-preview">'+esc(a.response_text)+'</div>' : '')+
         (a.notes ? '<div style="font-size:11px;color:#666;margin-top:4px">Notes: '+esc(a.notes)+'</div>' : '')+
         '<input class="notes-input" placeholder="Add notes..." value="'+esc(a.notes||'')+'"'+
-          ' onchange="updateAction(\\''+a.id+'\\', \\''+a.status+'\\', this.value)" />'+
+          ' onchange="updateAction(&#39;'+a.id+'&#39;, &#39;'+a.status+'&#39;, this.value)" />'+
       '</div>'+
       '<div class="action-controls">'+
         (a.status === 'todo'
-          ? '<button class="btn-done" onclick="updateAction(\\''+a.id+'\\', \\'done\\')">Mark Done</button>'+
-            '<button class="btn-skip" onclick="updateAction(\\''+a.id+'\\', \\'skipped\\')">Skip</button>'
-          : '<button class="btn-undo" onclick="updateAction(\\''+a.id+'\\', \\'todo\\')">Undo</button>'
+          ? '<button class="btn-done" onclick="updateAction(&#39;'+a.id+'&#39;, &#39;done&#39;)">Mark Done</button>'+
+            '<button class="btn-skip" onclick="updateAction(&#39;'+a.id+'&#39;, &#39;skipped&#39;)">Skip</button>'
+          : '<button class="btn-undo" onclick="updateAction(&#39;'+a.id+'&#39;, &#39;todo&#39;)">Undo</button>'
         )+
       '</div>'+
     '</div>';
