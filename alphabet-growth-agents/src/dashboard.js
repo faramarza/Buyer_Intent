@@ -49,6 +49,7 @@ function areSimilarActions(a, b) {
 }
 
 app.get("/api/actions", async (req, res) => {
+  try {
   const store = await loadActions();
   let actions = store.actions;
 
@@ -83,23 +84,42 @@ app.get("/api/actions", async (req, res) => {
   else actions.sort((a, b) => (b.scores?.normalized || 0) - (a.scores?.normalized || 0));
 
   res.json({ actions, total: actions.length });
+  } catch (err) {
+    console.error(`[Dashboard] /api/actions error: ${err.message}`);
+    res.status(500).json({ actions: [], total: 0, error: err.message });
+  }
 });
 
 app.patch("/api/actions/:id", async (req, res) => {
-  const { status, notes } = req.body;
-  const action = await updateActionStatus(req.params.id, status, notes);
-  if (!action) return res.status(404).json({ error: "Action not found" });
-  res.json(action);
+  try {
+    const { status, notes } = req.body;
+    const action = await updateActionStatus(req.params.id, status, notes);
+    if (!action) return res.status(404).json({ error: "Action not found" });
+    res.json(action);
+  } catch (err) {
+    console.error(`[Dashboard] /api/actions/:id error: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.get("/api/stats", async (req, res) => {
-  const stats = await getStats();
-  res.json(stats);
+  try {
+    const stats = await getStats();
+    res.json(stats);
+  } catch (err) {
+    console.error(`[Dashboard] /api/stats error: ${err.message}`);
+    res.status(500).json({ total: 0, done: 0, skipped: 0, todo: 0, byImpact: {}, byCategory: {}, runs: 0 });
+  }
 });
 
 app.get("/api/runs", async (req, res) => {
-  const store = await loadActions();
-  res.json(store.runs || []);
+  try {
+    const store = await loadActions();
+    res.json(store.runs || []);
+  } catch (err) {
+    console.error(`[Dashboard] /api/runs error: ${err.message}`);
+    res.json([]);
+  }
 });
 
 app.get("/", (req, res) => {
@@ -358,7 +378,16 @@ loadStats();
 </body>
 </html>`;
 
+process.on("uncaughtException", (err) => {
+  console.error(`[Dashboard] CRASH (uncaughtException): ${err.message}`);
+  console.error(err.stack);
+});
+
+process.on("unhandledRejection", (err) => {
+  console.error(`[Dashboard] CRASH (unhandledRejection): ${err}`);
+});
+
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`  [Dashboard] Running at http://localhost:${PORT}`);
-  console.log(`  [Dashboard] Or from remote: http://YOUR_SERVER_IP:${PORT}`);
+  console.log(`  [Dashboard] Started at ${new Date().toISOString()}`);
 });
