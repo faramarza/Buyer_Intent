@@ -387,7 +387,24 @@ process.on("unhandledRejection", (err) => {
   console.error(`[Dashboard] CRASH (unhandledRejection): ${err}`);
 });
 
-app.listen(PORT, "0.0.0.0", () => {
+process.on("exit", (code) => {
+  console.error(`[Dashboard] EXIT with code ${code} at ${new Date().toISOString()}`);
+  console.error(new Error("exit stack trace").stack);
+});
+
+process.on("SIGTERM", () => console.error("[Dashboard] Received SIGTERM"));
+process.on("SIGINT", () => console.error("[Dashboard] Received SIGINT"));
+process.on("SIGHUP", () => console.error("[Dashboard] Received SIGHUP"));
+
+const server = app.listen(PORT, "0.0.0.0", () => {
   console.log(`  [Dashboard] Running at http://localhost:${PORT}`);
   console.log(`  [Dashboard] Started at ${new Date().toISOString()}`);
+});
+
+server.on("error", (err) => {
+  console.error(`[Dashboard] SERVER ERROR: ${err.message}`);
+});
+
+server.on("close", () => {
+  console.error(`[Dashboard] Server closed at ${new Date().toISOString()}`);
 });
