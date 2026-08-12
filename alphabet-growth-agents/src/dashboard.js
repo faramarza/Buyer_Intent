@@ -37,13 +37,10 @@ function wordOverlap(textA, textB) {
 }
 
 function areSimilarActions(a, b) {
-  // Same first 8 words
   if (firstNWords(a.action, 8) === firstNWords(b.action, 8) && firstNWords(a.action, 8).length > 0) return true;
-  // Same target page URL
   const urlA = extractPageUrl(a.action);
   const urlB = extractPageUrl(b.action);
   if (urlA && urlB && urlA === urlB) return true;
-  // 70%+ word overlap
   if (wordOverlap(a.action, b.action) >= 0.7) return true;
   return false;
 }
@@ -53,13 +50,11 @@ app.get("/api/actions", async (req, res) => {
   const store = await loadActions();
   let actions = store.actions;
 
-  // Deduplicate using similarity matching
   const deduped = [];
   for (const a of actions) {
     let isDup = false;
     for (let i = 0; i < deduped.length; i++) {
       if (areSimilarActions(a, deduped[i])) {
-        // Keep the one with the higher score
         if ((a.scores?.normalized || 0) > (deduped[i].scores?.normalized || 0)) {
           deduped[i] = a;
         }

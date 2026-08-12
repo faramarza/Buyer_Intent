@@ -14,6 +14,38 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+async function searchSerper(query, maxResults = 10) {
+  const apiKey = process.env.SERPER_API_KEY;
+
+  const res = await fetch("https://google.serper.dev/search", {
+    method: "POST",
+    headers: {
+      "X-API-KEY": apiKey,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ q: query, num: maxResults })
+  });
+
+  if (!res.ok) {
+    throw new Error(`Serper search failed: ${res.status}`);
+  }
+
+  const data = await res.json();
+  const results = [];
+
+  for (const r of data.organic || []) {
+    if (results.length >= maxResults) break;
+    results.push({
+      title: r.title || "",
+      snippet: r.snippet || "",
+      url: r.link || "",
+      displayUrl: r.link || ""
+    });
+  }
+
+  return results;
+}
+
 function parseResults(html, maxResults) {
   const $ = cheerio.load(html);
   const results = [];
@@ -53,7 +85,7 @@ function parseResults(html, maxResults) {
   return results;
 }
 
-export async function searchDuckDuckGo(query, maxResults = 10) {
+async function searchDuckDuckGoFallback(query, maxResults = 10) {
   const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
   const MAX_RETRIES = 3;
 
@@ -91,6 +123,13 @@ export async function searchDuckDuckGo(query, maxResults = 10) {
   }
 
   return [];
+}
+
+export async function searchDuckDuckGo(query, maxResults = 10) {
+  if (process.env.SERPER_API_KEY) {
+    return searchSerper(query, maxResults);
+  }
+  return searchDuckDuckGoFallback(query, maxResults);
 }
 
 export function detectPlatform(url) {
