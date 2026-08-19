@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <section id="payment">
+            <group id="purchaseorder">
+                <field id="allow_specific_customer_groups" translate="label comment" type="select"
+                       sortOrder="60" showInDefault="1" showInWebsite="1" canRestore="1">
+                    <label>Limit to Specific Customer Groups</label>
+                    <comment>Show Purchase Order at checkout only to approved institutional accounts (schools, districts, libraries).</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="specific_customer_groups" translate="label comment" type="multiselect"
+                       sortOrder="70" showInDefault="1" showInWebsite="1" canRestore="1">
+                    <label>Allowed Customer Groups</label>
+                    <comment>Groups that may pay by PO. Admin-created orders are never restricted.</comment>
+                    <source_model>Magento\Customer\Model\Config\Source\Group\Multiselect</source_model>
+                    <depends>
+                        <field id="allow_specific_customer_groups">1</field>
+                    </depends>
+                </field>
+            </group>
+        </section>
+    </system>
+</config>
